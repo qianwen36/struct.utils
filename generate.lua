@@ -75,11 +75,19 @@ function io.writefile(path, content, mode)
 end
 
 local predefines = {}
+local packSize = {
+	c = 1, b = 1,
+	h = 2, H = 2,
+	i = 4, I = 4,
+	l = 4, L = 4,
+	f = 4, d = 8,
+}
 
 local function stringify(s)
 	return table.concat{"'", s, "'"}
 end
 local function struct_fields( t, block )
+	local len = 0
 	for line in block:gmatch('\n%s*(%a+.-);') do
 		local dims = {}
 		line = line:gsub('(%b[])', function(s)
@@ -95,7 +103,10 @@ local function struct_fields( t, block )
 			desc[2+i] = dims[i]
 		end
 		table.insert(t, table.concat{'\t{', table.concat(desc, ', '), '},'})
+		len = len + (packSize[fmt2] or 4)
 	end
+	table.insert(t, table.concat{'\tlen = ', len})
+	return len
 end
 local function genDesc( hfile )
 	local content = io.readfile(hfile)
@@ -120,7 +131,7 @@ local function genDesc( hfile )
 		table.insert(t, '--]]')
 		local block, def = struct:match('(%b{})%s*([_%w]+)')
 		table.insert(t, def..' = {')
-		struct_fields(t, block)
+		packSize[def] = struct_fields(t, block)
 		table.insert(t, '},')
 	end
 	table.insert(t, '}')

@@ -341,9 +341,9 @@ function target.resolve( desc, ... )
 	for ty, tdes in pairs(desc) do
 		desc_dereference(tdes, list)
 	end
-	for ty, tdes in pairs(desc) do
-		struct_len(tdes)
-	end
+	-- for ty, tdes in pairs(desc) do
+	-- 	struct_len(tdes)
+	-- end
 	for i = 2, #list do -- merge reference description table
 		for ty,tdes in pairs(list[i]) do
 			desc[ty] = tdes
