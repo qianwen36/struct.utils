@@ -171,7 +171,7 @@ function target.pack( t, desc, c )
 			local fdes = desc[i]
 			local field, ty, c, c2 = unpack(fdes)
 			local value = t[field]
-			if c then
+			if c and c > 1 then
 				-- value = array_pack(value, fdes, 1) -- Recursive for multi-dimension array
 				if c2 then
 					value = array_pack(value, fdes, 1)
@@ -198,10 +198,18 @@ function target.pack( t, desc, c )
 	return ret
 end
 
+function target.packs( ... )
+    local array = {...}
+    for i=1,#array do
+        array[i] = target.pack(unpack(array[i]))
+    end
+    return table.concat(array)
+end
+
 function array_unpack( data, fdes, index )
 	local ret
 	local c = fdes[index+2]
-	if c then
+	if c and data then
 		local fmt = format(fdes, index)
 		if index+2 < #fdes then
 			ret  = array(string.unpack(data, fmt))
@@ -216,18 +224,17 @@ function array_unpack( data, fdes, index )
 					ret[i] = target.unpack(ret[i], ty)
 				end
 			elseif ty == 'c' then
-				ret = string.unpack(data, fmt)
+				ret = data
 			else
 				ret = array(string.unpack(data, fmt))
-				if ty == 'c' then
-					value = value[1]
-				end
 			end
 		end
 	end
 	return ret
 end
 function target.unpack( data, desc, c )
+	if data == nil then return nil, 1 end
+
 	local ret, rest = {}
 	if c then
 		local fmt = endian..string.rep('A'..desc.len, c)
@@ -239,9 +246,15 @@ function target.unpack( data, desc, c )
 		rest = desc.len +1
 	else
 		local fmt, list = format(desc)
-		data = target.fill(data, desc.len)
 		list, rest = array(string.unpack(data, fmt))
-		for i=1,#list do
+		local last = #list
+		if last < #desc then -- struct is truncated
+			local index = last+1
+			list[index] = data:sub(rest)
+			last = index
+			rest = data:len()+1
+		end
+		for i=1, last do
 			local fdes, value = desc[i], list[i]
 			local field, ty, c, c2 = unpack(fdes)
 			if c then
@@ -256,9 +269,8 @@ function target.unpack( data, desc, c )
 							value[i] = target.unpack(value[i], ty)
 						end
 					else
-						value = array(string.unpack(value, fmt))
-						if ty == 'c' then
-							value = value[1]
+						if ty ~= 'c' then
+							value = array(string.unpack(value, fmt))
 						end
 					end
 				end
@@ -324,13 +336,18 @@ local function desc_dereference( tdes, refs )
 		end
 	end
 end
-function target.dereference( desc, ... )
+function target.resolve( desc, ... )
 	local list = {desc, ...}
 	for ty, tdes in pairs(desc) do
 		desc_dereference(tdes, list)
 	end
 	for ty, tdes in pairs(desc) do
 		struct_len(tdes)
+	end
+	for i = 2, #list do -- merge reference description table
+		for ty,tdes in pairs(list[i]) do
+			desc[ty] = tdes
+		end
 	end
 	return desc
 end
