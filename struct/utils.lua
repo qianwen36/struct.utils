@@ -129,9 +129,9 @@ local function format( desc, index, enc )
 end
 local array_unpack
 local array_pack
-function array_pack( t, fdes, index )
+function array_pack( t, fdes, index, c )
 	local ret
-	local c = fdes[index+2]
+	c = c or fdes[index+2]
 	if c then
 		local fmt = format(fdes, index, true)
 		if index+2 < #fdes then
@@ -171,7 +171,8 @@ function target.pack( t, desc, c )
 		ret = table.concat(list)
 	else
 		local list = {}
-		for i=1,#desc do
+		local last = #desc
+		for i=1, last-1 do
 			local fdes = desc[i]
 			local field, ty, c, c2 = unpack(fdes)
 			local value = t[field]
@@ -182,11 +183,11 @@ function target.pack( t, desc, c )
 				else
 					value = value or (ty == 'c' and '' or {})
 					if type(ty) == 'table' then
-						value = target.pack(t, ty, c)
+						value = target.pack(value, ty, c)
 					elseif ty == 'c' then
 						value = target.fill(value or '', c)
 					else
-						local fmt = format(fdes, 1, true)
+						local fmt = format(fdes, 1, true) 
 						value = target.fill(value or {}, c, 0)
 						value = string.pack(fmt, unpack(value))
 					end
@@ -196,6 +197,41 @@ function target.pack( t, desc, c )
 			end
 			table.insert(list, value or 0)
 		end
+		-- take last field
+		local fdes = desc[last]
+		local field, ty, c, c2 = unpack(fdes)
+		local value = t[field]
+		if c and c > 1 then
+			local truncated = type(value) == 'table'
+			if truncated then
+				local caller = debug.getinfo(2).func
+				truncated = caller ~= array_pack and caller ~= target.pack
+			end 
+			if truncated then c = #value end
+			if c2 then
+				value = array_pack(value, fdes, 1, c)
+			else
+				value = value or (ty == 'c' and '' or {})
+				if type(ty) == 'table' then
+					value = target.pack(value, ty, c)
+				elseif ty == 'c' then
+					value = target.fill(value or '', c)
+				else
+					local fmt
+					if truncated then
+						fmt = endian..ty..c
+					else
+						fmt = format(fdes, 1, true) 
+						value = target.fill(value or {}, c, 0)
+					end
+					value = string.pack(fmt, unpack(value))
+				end
+			end
+		elseif type(ty) == 'table' then
+			value = target.pack(value or {}, ty)
+		end
+		table.insert(list, value or 0)
+
 		local fmt = format(desc, true)
 		ret = string.pack(fmt, unpack(list))
 	end
