@@ -3,6 +3,10 @@ local TAG = '************[struct.utils] '
 local function log( ... )
 	print(table.concat({TAG, ...}))
 end
+local function array( rest, ... )
+	return {...}, rest
+end
+
 --------------------------------------------------------------------------
 local endian = '<'
 local packSize = {

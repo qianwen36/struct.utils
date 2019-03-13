@@ -73,6 +73,10 @@ function io.writefile(path, content, mode)
         return false
     end
 end
+local TAG = '************[struct.generate] '
+local function log( ... )
+	print(table.concat({TAG, ...}))
+end
 
 local predefines = {}
 local packSize = {
@@ -82,6 +86,38 @@ local packSize = {
 	l = 4, L = 4,
 	f = 4, d = 8,
 }
+
+local value_check
+local arithmetic = {
+	['+'] = function ( a, b ) return a + b end;
+	['-'] = function ( a, b ) return a - b end;
+	['*'] = function ( a, b ) return a * b end;
+	['/'] = function ( a, b ) return a / b end;
+	['%'] = function ( a, b ) return a % b end;
+}
+function value_check( var )
+	local ret = tonumber(var) or predefines[var]
+	if ret == nil then
+		local op = var:match('[%+%-%*%%%/]')
+		if op ~= nil then
+			local a, b = var:match(table.concat({'([_%w]+)%s*%', op, '%s*(%w+.-)'}))
+			a = value_check(a)
+			b = value_check(b)
+			if a ~= nil and b ~= nil then
+				ret = arithmetic[op](a, b)
+			end
+		end
+	end
+	if ret == nil then log(var, ' can not resolve!') end
+	return ret
+end
+local function rep( dims )
+	local ret = 1
+	for i=1,#dims do
+		ret = ret * value_check(dims[i])
+	end
+	return ret
+end
 
 local function stringify(s)
 	return table.concat{"'", s, "'"}
@@ -103,7 +139,8 @@ local function struct_fields( t, block )
 			desc[2+i] = dims[i]
 		end
 		table.insert(t, table.concat{'\t{', table.concat(desc, ', '), '},'})
-		len = len + (packSize[fmt2] or 4)
+		local size = (packSize[fmt2] or 4) * rep(dims)
+		len = len + size
 	end
 	table.insert(t, table.concat{'\tlen = ', len})
 	return len
@@ -119,11 +156,15 @@ local function genDesc( hfile )
 	end
 	table.insert(t,
 	'----------------------------------------')
+	print('-- Predefine macro from '..hfile)
 	for name, value in content:gmatch('#define%s*([_%w]+)%s*([_%w]+)') do
 		local def = table.concat{'local ', name, '\t= ', value}
 		table.insert(predefines, def)
 		table.insert(t, def)
+		print('#define', name, value)
+		predefines[name] = value_check(value)
 	end
+	print'----------------------------------------'
 	table.insert(t, 'local target = {')
 	for struct in content:gmatch('(typedef struct %g-%s*%b{}%s*[_%w]+.-;)') do
 		table.insert(t, '--[[')
