@@ -219,7 +219,7 @@ function target.pack( t, desc, c )
 				else
 					local fmt
 					if truncated then
-						fmt = endian..ty..c
+						fmt = table.concat{endian, ty, c}
 					else
 						fmt = format(fdes, 1, true) 
 						value = target.fill(value or {}, c, 0)
