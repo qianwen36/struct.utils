@@ -195,7 +195,7 @@ function target.pack( t, desc, c )
 			elseif type(ty) == 'table' then
 				value = target.pack(value or {}, ty)
 			end
-			table.insert(list, value or 0)
+			list[i] = value or 0
 		end
 		-- take last field
 		local fdes = desc[last]
@@ -206,7 +206,7 @@ function target.pack( t, desc, c )
 			if truncated then
 				local caller = debug.getinfo(2).func
 				truncated = caller ~= array_pack and caller ~= target.pack
-			end 
+			end
 			if truncated then c = #value end
 			if c2 then
 				value = array_pack(value, fdes, 1, c)
@@ -230,7 +230,7 @@ function target.pack( t, desc, c )
 		elseif type(ty) == 'table' then
 			value = target.pack(value or {}, ty)
 		end
-		table.insert(list, value or 0)
+		list[last] = value or 0
 
 		local fmt = format(desc, true)
 		ret = string.pack(fmt, unpack(list))
