@@ -183,10 +183,10 @@ end
 
 for i=1,#hfile do
 	local content, name = genDesc(hfile[i])
-	local fn = name..'/struct.lua'
+	local fn = name..'/struct_desc.lua'
 	local cmd = table.concat{'if not exist ', name, ' ( ', 'md ', name, ' )'}
 	os.execute(cmd)
 	io.writefile(fn, content)
 end
 print '----------------------------------------'
-print 'struct.lua generated!'
+print 'struct_desc.lua generated!'
