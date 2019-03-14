@@ -61,7 +61,7 @@ StructDef = utils.resolve(StructDef)
 ```
 ## struct pack for lua table
 ```
-data = utils.pack(StructDef.CURRENCY_EXCHANGE_EX, {
+data = utils.pack({
 	dwNotifyFlags = 2222,
 	nEnterRoomID = 22458,
 	currencyExchange = {
@@ -70,10 +70,10 @@ data = utils.pack(StructDef.CURRENCY_EXCHANGE_EX, {
 		nCurrency = 2,
 		nExchangeGameID = 384,
 	}
-})
+	}, StructDef.CURRENCY_EXCHANGE_EX)
 ```
 ## struct unpack to lua table
 ```
-t = utils.unpack(data)
+t = utils.unpack(data, StructDef.CURRENCY_EXCHANGE_EX)
 dump(t)
 ```
