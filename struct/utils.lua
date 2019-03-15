@@ -204,7 +204,7 @@ function target.pack( t, desc, c )
 		if c and c > 1 then
 			local truncated = type(value) == 'table'
 			if truncated then
-				local caller = debug.getinfo(2).func
+				local caller = debug.getinfo(2, 'f').func
 				truncated = caller ~= array_pack and caller ~= target.pack
 			end
 			if truncated then c = #value end
